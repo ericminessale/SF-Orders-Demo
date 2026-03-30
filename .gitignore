@@ -4,3 +4,8 @@ __pycache__/
 .claude/
 test_bare.py
 .mcp.json
+swml_dump.json
+post_prompt_log.json
+post_prompt_viewer.json
+sandbox_data.json
+dump_sandbox_data.py
