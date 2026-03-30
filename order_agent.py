@@ -39,6 +39,9 @@ class OrderManagementAgent(AgentBase):
         super().__init__(
             name="sf-order-agent",
             route="/order-agent",
+            record_call=True,
+            record_format="wav",
+            record_stereo=True,
         )
 
         self.sf = get_salesforce_client()
@@ -61,8 +64,11 @@ class OrderManagementAgent(AgentBase):
             "top_p": 0.9,
             "barge_confidence": 0.3,
             "barge_min_words": 2,
-            "end_of_speech_timeout": 500,
+            "end_of_speech_timeout": 350,
         })
+
+        # --- Model ---
+        self.set_prompt_llm_params(model="gpt-oss-120b")
 
         # --- Prompt: ONLY persona and tone ---
         self.prompt_add_section("Role", body=(
@@ -125,8 +131,22 @@ class OrderManagementAgent(AgentBase):
     # =========================================================================
 
     def on_summary(self, summary, raw_data=None):
-        """Write call summary back to Salesforce as a Case."""
+        """Write call summary back to Salesforce as a Case and save raw post_prompt data."""
         print(f"[on_summary] {summary}")
+
+        # Save raw post_prompt data for the post prompt viewer
+        import json
+        try:
+            post_prompt_log = {
+                "summary": summary,
+                "raw_data": raw_data,
+            }
+            with open("post_prompt_log.json", "w") as f:
+                json.dump(post_prompt_log, f, indent=2, default=str)
+            print("[on_summary] Saved to post_prompt_log.json")
+        except Exception as e:
+            print(f"[on_summary] Failed to save log: {e}")
+
         try:
             self.sf.Case.create({
                 "Subject": "AI Agent Call Summary",
