@@ -42,8 +42,12 @@ def get_salesforce_client() -> Salesforce:
 # --- Query helpers ---
 
 def lookup_account_by_phone(sf: Salesforce, phone: str) -> dict | None:
-    """Find an account by phone number."""
-    result = sf.query(f"SELECT Id, Name, Phone, BillingAddress, AccountNumber FROM Account WHERE Phone = '{phone}' LIMIT 1")
+    """Find an account by phone number. Normalizes E.164 and other formats."""
+    # Strip +1 prefix and any non-digit characters for matching
+    digits = ''.join(c for c in phone if c.isdigit())
+    if digits.startswith('1') and len(digits) == 11:
+        digits = digits[1:]  # Remove country code
+    result = sf.query(f"SELECT Id, Name, Phone, BillingAddress, AccountNumber FROM Account WHERE Phone = '{digits}' LIMIT 1")
     return result["records"][0] if result["records"] else None
 
 
@@ -100,14 +104,32 @@ def update_order_status(sf: Salesforce, order_id: str, new_status: str) -> bool:
         return False
 
 
+US_STATES = {
+    "AL": "Alabama", "AK": "Alaska", "AZ": "Arizona", "AR": "Arkansas", "CA": "California",
+    "CO": "Colorado", "CT": "Connecticut", "DE": "Delaware", "FL": "Florida", "GA": "Georgia",
+    "HI": "Hawaii", "ID": "Idaho", "IL": "Illinois", "IN": "Indiana", "IA": "Iowa",
+    "KS": "Kansas", "KY": "Kentucky", "LA": "Louisiana", "ME": "Maine", "MD": "Maryland",
+    "MA": "Massachusetts", "MI": "Michigan", "MN": "Minnesota", "MS": "Mississippi",
+    "MO": "Missouri", "MT": "Montana", "NE": "Nebraska", "NV": "Nevada", "NH": "New Hampshire",
+    "NJ": "New Jersey", "NM": "New Mexico", "NY": "New York", "NC": "North Carolina",
+    "ND": "North Dakota", "OH": "Ohio", "OK": "Oklahoma", "OR": "Oregon", "PA": "Pennsylvania",
+    "RI": "Rhode Island", "SC": "South Carolina", "SD": "South Dakota", "TN": "Tennessee",
+    "TX": "Texas", "UT": "Utah", "VT": "Vermont", "VA": "Virginia", "WA": "Washington",
+    "WV": "West Virginia", "WI": "Wisconsin", "WY": "Wyoming", "DC": "District of Columbia",
+}
+
+
 def update_order_shipping_address(sf: Salesforce, order_id: str, street: str, city: str, state: str, postal_code: str) -> bool:
-    """Update the shipping address on an order."""
+    """Update the shipping address on an order. Normalizes state codes to full names for Salesforce picklists."""
     try:
+        # Salesforce State & Country picklists require full state name and country
+        state_full = US_STATES.get(state.upper(), state) if len(state) == 2 else state
         sf.Order.update(order_id, {
             "ShippingStreet": street,
             "ShippingCity": city,
-            "ShippingState": state,
+            "ShippingState": state_full,
             "ShippingPostalCode": postal_code,
+            "ShippingCountry": "United States",
         })
         return True
     except Exception as e:
