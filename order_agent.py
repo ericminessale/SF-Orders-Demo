@@ -112,8 +112,9 @@ class OrderManagementAgent(AgentBase):
         ctx = contexts.add_context("default")
 
         ctx.add_step("identify_customer") \
-            .add_section("Task", "Greet the caller and ask for their company name to look up their account.") \
-            .set_functions(["lookup_customer_by_name"])
+            .add_section("Task", "Greet the caller first, then ask for their company name or phone number. "
+                         "Do not look up the caller's phone number automatically — wait for them to provide it.") \
+            .set_functions(["lookup_customer_by_name", "lookup_customer_by_phone"])
 
         ctx.add_step("main_menu") \
             .add_section("Task", "The customer is verified. Ask how you can help. "
