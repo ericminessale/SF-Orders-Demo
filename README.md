@@ -2,12 +2,13 @@
 
 AI voice agent for order management, powered by SignalWire and backed by a live Salesforce org.
 
-A caller can phone in, identify themselves by company name or phone number, and the agent will look up their account, list orders, provide order details, update shipping addresses, request cancellations, and create support cases — all in real-time against Salesforce.
+A caller phones in, identifies themselves by company name, and the agent looks up their account, lists orders, provides order details, validates and updates shipping addresses via Google Maps, requests cancellations, and creates support cases — all in real-time against Salesforce.
 
 ## What it does
 
-- **Account lookup** — find customers by name or phone number via Salesforce Accounts
-- **Order management** — list recent orders, get line-item details, update shipping addresses, cancel draft orders
+- **Account lookup** — find customers by company name via Salesforce Accounts
+- **Order management** — list recent orders, get line-item details, cancel draft orders
+- **Address validation** — validate new shipping addresses via Google Maps Geocoding before applying, with customer confirmation
 - **Case creation** — create support cases for escalations, cancellations, and issues
 - **Post-call summary** — automatically writes a structured call summary back to Salesforce as a Case after every call
 
@@ -21,19 +22,14 @@ Follow [SETUP_GUIDE.md](SETUP_GUIDE.md) to create a free Developer Edition org, 
 
 ```bash
 pip install -r requirements.txt
-```
-
-The agent uses the [SignalWire AI Agents SDK](https://github.com/signalwire/signalwire-agents-python). Install it separately:
-
-```bash
-pip install signalwire-agents
+pip install signalwire
 ```
 
 ### 3. Configure environment
 
 ```bash
 cp .env.example .env
-# Fill in your SignalWire and Salesforce credentials
+# Fill in your SignalWire credentials, Salesforce OAuth credentials, and Google Maps API key
 ```
 
 ### 4. Test Salesforce connection
@@ -54,14 +50,14 @@ python seed_salesforce.py
 python order_agent.py
 ```
 
-The agent starts on port 3001. Expose it with ngrok or deploy to a server, then point a SignalWire phone number at `https://your-url/order-agent`.
+The agent starts on port 3000. Expose it with ngrok or deploy to a server, then point a SignalWire phone number at `https://your-url/order-agent`.
 
 ## Files
 
 | File | Purpose |
 |------|---------|
 | `order_agent.py` | The voice AI agent with all SWAIG tools |
-| `salesforce_client.py` | Salesforce REST API client (OAuth + CRUD) |
+| `salesforce_client.py` | Salesforce REST API client (OAuth + CRUD + address normalization) |
 | `seed_salesforce.py` | Seeds the SF org with demo accounts, orders, products, cases |
 | `test_connection.py` | Verifies Salesforce API connectivity |
 | `SETUP_GUIDE.md` | Step-by-step Salesforce org setup guide |
